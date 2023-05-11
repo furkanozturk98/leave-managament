@@ -1,0 +1,47 @@
+stages:
+  - test
+
+variables:
+  MYSQL_ROOT_PASSWORD: root
+  MYSQL_USER: homestead
+  MYSQL_PASSWORD: secret
+  MYSQL_DATABASE: leave_management
+  DB_HOST: mysql
+
+cache:
+  key: $CI_COMMIT_REF_NAME
+  paths:
+    - vendor
+    - public
+
+test:
+  stage: test
+  services:
+    - mysql:5.7
+  image: edbizarro/gitlab-ci-pipeline-php:7.4-alpine
+  script:
+    - export COMPOSER_MEMORY_LIMIT=-1
+    - export APP_ENV=testing
+    - export CACHE_DRIVER=array
+    - sudo pecl uninstall xdebug
+    - sudo npm install -g eslint@7.7.0 --ignore-scripts
+    - sudo npm install eslint-plugin-vue@6.2.2 --save-dev --ignore-scripts
+    - eslint resources/js/ --ext .vue
+    - composer install --prefer-dist --no-ansi --no-interaction --no-progress #--no-scripts
+    - vendor/bin/php-cs-fixer fix app/ --dry-run
+    - vendor/bin/phpstan analyse --memory-limit=2G
+    - cp .env.example .env
+    - php artisan key:generate
+    - php artisan config:cache
+    - php artisan route:cache
+    - php artisan migrate:refresh --seed --quiet
+    - ./vendor/bin/phpunit --coverage-html --min=85 -v --colors=never --stderr
+  artifacts:
+    paths:
+      - ./storage/logs # for debugging
+    expire_in: 1 days
+    when: always
+  cache:
+    paths:
+      - vendor/
+      - .env

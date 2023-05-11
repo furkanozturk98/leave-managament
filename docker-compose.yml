@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:6.0.3-alpine
+    container_name: LeaveManagement
+    ports:
+      - 6379:6379
+    restart: always
+    networks:
+      - starling-wifi
+networks:
+  starling-wifi:
+    driver: bridge
